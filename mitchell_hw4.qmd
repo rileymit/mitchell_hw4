@@ -6,4 +6,71 @@ format:
     embed-resources: true
 ---
 
-This is changed
+## Reddit Analysis
+
+```{r}
+# Load required packages
+library(RedditExtractoR)
+library(tidyverse)
+library(readr)
+# Set subreddit and keywords 
+#| eval: false
+top_cat_urls <- find_thread_urls(keywords="bad kittens", subreddit="cats", sort_by="new", period="month")
+
+saveRDS(top_cat_urls, file = "top_cat_urls.rds")
+
+```
+
+
+# Tidying Data for Analysis
+```{r}
+library(tidytext)
+library(stopwords)
+```
+
+Now that Ive pulled some urls for analysis, let's tidy the data.
+```{r}
+write_rds(top_cat_urls, file = "top_cat_urls.rds")
+```
+
+```{r, eval = FALSE}
+tidy_cats <- top_cat_urls %>%
+  unnest_tokens(word, text)
+
+# removing stopwords
+tidy_cats %>%
+  anti_join(get_stopwords()) %>%
+  count(word, sort = TRUE)
+# visualization
+tidy_cats %>%
+  anti_join(get_stopwords()) %>%
+  count(word, sort = TRUE) %>%
+  slice_max(n, n = 30) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(n, word)) +
+  geom_col()
+```
+*I realize that there are no images being produced in the rendered html file, as I have included "eval = False" in my r chunks to prevent the anti_join from printing to the screen as it is a lot to scroll through*
+
+While there is no mind-breaking analysis to be made here, it is safe to say that the top word being "cat" has something to do with the fact that this information was pulled from the cats subreddit. Not surprisingly, the word "kitten" is not far behind.
+
+## 2. Comments from a specific user:
+```{r, eval = FALSE}
+library(wordcloud)
+user <- "ThisAintItChieftain"
+chief_user <- get_user_content(user)
+str(chief_user)
+str(chief_user[[user]]$about)
+
+mycomments <- chief_user[[user]]$comments
+mycomments <- tibble(mycomments)
+
+tidy_comments <- mycomments %>%
+  unnest_tokens(word, comment) %>%
+  anti_join(stop_words)
+
+tidy_comments %>%
+  count(word) %>%
+  with(wordcloud(word, n, max.words = 100))
+```
+
